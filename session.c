@@ -1197,6 +1197,9 @@ do_setup_env(struct ssh *ssh, Session *s, const char *shell)
 	free(laddr);
 	child_set_env(&env, &envsize, "SSH_CONNECTION", buf);
 
+    snprintf(buf, sizeof buf, "%d", channel_list_rport_listener(ssh));
+    child_set_env(&env, &envsize, "SSH_REMOTE_FORWARDING_PORTS", buf);
+
 	if (tun_fwd_ifnames != NULL)
 		child_set_env(&env, &envsize, "SSH_TUNNEL", tun_fwd_ifnames);
 	if (auth_info_file != NULL)

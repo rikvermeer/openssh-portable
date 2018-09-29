@@ -3676,6 +3676,23 @@ channel_cancel_lport_listener(struct ssh *ssh,
 	}
 }
 
+int 
+channel_list_rport_listener(struct ssh *ssh)
+{
+    u_int i;
+    //int found = 0;
+
+    for (i = 0; i < ssh->chanctxt->channels_alloc; i++) {
+        Channel *c = ssh->chanctxt->channels[i];
+        if (c == NULL || c->type != SSH_CHANNEL_RPORT_LISTENER)
+            continue;
+        //if (c->listening_addr == NULL)
+        //    continue;
+        return c->listening_port;
+    }
+    return 0;
+}
+
 /* protocol local port fwd, used by ssh */
 int
 channel_setup_local_fwd_listener(struct ssh *ssh,

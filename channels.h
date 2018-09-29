@@ -315,6 +315,7 @@ int	 channel_setup_remote_fwd_listener(struct ssh *, struct Forward *,
 int	 channel_cancel_rport_listener(struct ssh *, struct Forward *);
 int	 channel_cancel_lport_listener(struct ssh *, struct Forward *,
 	    int, struct ForwardOptions *);
+int  channel_list_rport_listener(struct ssh *);
 int	 permitopen_port(const char *);
 
 /* x11 forwarding */

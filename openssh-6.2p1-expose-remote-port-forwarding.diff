@@ -1,0 +1,82 @@
+diff -ru openssh-6.2p1/channels.c openssh-6.2p1.patched/channels.c
+--- openssh-6.2p1/channels.c	2012-12-02 23:50:55.000000000 +0100
++++ openssh-6.2p1.patched/channels.c	2013-05-15 23:26:17.119989982 +0200
+@@ -2865,6 +2865,52 @@
+ 	return success;
+ }
+ 
++/*
++ * Write list of remote forwarding ports into an existing buffer 
++ */
++void
++channel_list_rport_listener(char *buf, size_t size)
++{
++	u_int i, j, num_ports = 0;
++	int offset = 0;
++	int *ports;
++	int skip;
++
++	ports = xcalloc(channels_alloc, sizeof(int));
++
++	for (i = 0; i < channels_alloc; i++) {
++		skip = 0;
++		Channel *c = channels[i];
++		if (c == NULL || c->type != SSH_CHANNEL_RPORT_LISTENER)
++			continue;
++
++		/* Skip already added ports - IPv4 + IPv6 == same port twice */
++		for(j = 0; j < num_ports; j++) {
++			if (ports[j] == c->listening_port) {
++				skip = 1;
++				break;
++			}
++		}
++
++		if(skip) continue;
++
++		ports[num_ports] = c->listening_port;
++		num_ports++;
++
++		if(!offset) {
++			offset += snprintf(&buf[offset], size - offset, "%d", c->listening_port);
++		} else
++			offset += snprintf(&buf[offset], size - offset, " %d", c->listening_port);
++
++		if(offset >= size) {
++			error("Exceeded buffer space for remote forwarding ports listing");
++			break;
++		}
++	}
++
++	xfree(ports);
++}
++
+ int
+ channel_cancel_rport_listener(const char *host, u_short port)
+ {
+Only in openssh-6.2p1.patched/: .channels.c.swp
+diff -ru openssh-6.2p1/channels.h openssh-6.2p1.patched/channels.h
+--- openssh-6.2p1/channels.h	2012-04-22 03:21:10.000000000 +0200
++++ openssh-6.2p1.patched/channels.h	2013-05-09 23:21:37.385423623 +0200
+@@ -222,6 +222,7 @@
+ void	 channel_cancel_cleanup(int);
+ int	 channel_close_fd(int *);
+ void	 channel_send_window_changes(void);
++void	 channel_list_rport_listener(char *buf, size_t size);
+ 
+ /* protocol handler */
+ 
+diff -ru openssh-6.2p1/session.c openssh-6.2p1.patched/session.c
+--- openssh-6.2p1/session.c	2013-03-15 01:22:37.000000000 +0100
++++ openssh-6.2p1.patched/session.c	2013-05-15 23:27:12.459989713 +0200
+@@ -1235,6 +1235,9 @@
+ 	xfree(laddr);
+ 	child_set_env(&env, &envsize, "SSH_CONNECTION", buf);
+ 
++	channel_list_rport_listener(buf, sizeof buf);
++	child_set_env(&env, &envsize, "SSH_REMOTE_FORWARDING_PORTS", buf);
++
+ 	if (s->ttyfd != -1)
+ 		child_set_env(&env, &envsize, "SSH_TTY", s->tty);
+ 	if (s->term)
+Only in openssh-6.2p1.patched/: .session.c.swp
